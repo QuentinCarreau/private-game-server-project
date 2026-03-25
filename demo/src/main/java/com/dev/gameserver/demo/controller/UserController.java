@@ -34,6 +34,16 @@ public class UserController {
         return userRepository.findAll();
     }
 
+    @GetMapping("/me")
+    public ResponseEntity<User> getCurrentUser(java.security.Principal principal) {
+        if (principal == null) {
+            return ResponseEntity.status(401).build();
+        }
+        return userRepository.findByUsername(principal.getName())
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<User> getById(@PathVariable Long id) {
         return userRepository.findById(id)

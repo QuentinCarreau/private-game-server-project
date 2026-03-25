@@ -5,8 +5,14 @@ export const authService = {
     // In HTTP Basic, we just try to call an endpoint
     setAuthHeader(username, password);
     try {
-      await api.get('/users'); // Simple test call
-      return true;
+      const response = await api.get('/users/me'); // Get user profile and role
+      const user = response.data;
+      
+      // Update localStorage with full user data + token
+      const token = btoa(`${username}:${password}`);
+      localStorage.setItem('user', JSON.stringify({ ...user, token }));
+      
+      return user;
     } catch (error) {
       setAuthHeader(null);
       throw error;

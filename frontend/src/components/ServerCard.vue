@@ -44,13 +44,13 @@
           <button @click="showPass = !showPass">{{ showPass ? 'Masquer' : 'Voir' }}</button>
         </div>
       </div>
-      <div class="admin-actions" v-if="server.status === 'OFFLINE'">
+      <div class="admin-actions" v-if="isAdmin && server.status === 'OFFLINE'">
         <button class="btn-outline" @click="$emit('edit', server)">Paramètres du serveur</button>
         <button class="btn-danger" @click="confirmDelete">Détruire l'instance</button>
       </div>
     </div>
 
-    <div class="footer">
+    <div class="footer" v-if="isAdmin">
       <button v-if="server.status === 'OFFLINE'" @click="launchServer" class="btn-start" :disabled="isLaunching">
         {{ isLaunching ? 'Lancement...' : 'Démarrer le serveur' }}
       </button>
@@ -63,7 +63,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
 import { serverService } from '../services/server.service';
 
 const props = defineProps({ server: Object });
@@ -72,6 +72,15 @@ const emit = defineEmits(['edit', 'delete']);
 const expanded = ref(false);
 const showPass = ref(false);
 const isLaunching = ref(false);
+const isAdmin = ref(false);
+
+onMounted(() => {
+  const userStr = localStorage.getItem('user');
+  if (userStr) {
+    const user = JSON.parse(userStr);
+    isAdmin.value = user.role === 'ADMIN';
+  }
+});
 
 const launchServer = async () => {
   isLaunching.value = true;
