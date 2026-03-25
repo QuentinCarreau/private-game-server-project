@@ -1,105 +1,266 @@
 <template>
-  <div class="server-card glass" :class="server.status.toLowerCase()">
-    <div class="card-header">
-      <h3>{{ server.name }}</h3>
-      <span class="badge">{{ server.status }}</span>
+  <div class="server-card">
+    <div class="header">
+      <div class="title-group">
+        <h3>{{ server.name }}</h3>
+        <span class="status-badge" :class="server.status.toLowerCase()">
+          {{ server.status }}
+        </span>
+      </div>
+      <button class="btn-more" @click="expanded = !expanded" :title="expanded ? 'Réduire' : 'Détails'">
+        {{ expanded ? '−' : '＋' }}
+      </button>
     </div>
-    <div class="card-body">
-      <p v-if="server.game">{{ server.game.name }}</p>
-      <p v-else class="placeholder">Aucun jeu actif</p>
-      
-      <div v-if="server.status === 'ONLINE'" class="details">
-        <div class="ip-address">
-          <span>IP:</span>
-          <code>{{ server.ipAddress }}</code>
-        </div>
-        <div class="players">
-          <span>Joueurs:</span>
-          <span>{{ server.currentPlayers }} / {{ server.maxPlayers }}</span>
-        </div>
+
+    <div class="info-row">
+      <div class="info-item">
+        <label>Jeu</label>
+        <span class="value">{{ server.game?.name || 'Libre' }}</span>
+      </div>
+      <div class="info-item players" v-if="server.status === 'ONLINE'">
+        <label>Joueurs</label>
+        <span class="value">{{ server.currentPlayers }} / {{ server.maxPlayers }}</span>
+      </div>
+      <div class="info-item" v-if="server.status === 'ONLINE'">
+        <label>Ressources</label>
+        <span class="value-mini">CPU: {{ server.currentCpuUsage }} / {{ server.game?.cpuUsage }}</span>
+        <span class="value-mini">RAM: {{ server.currentRamUsage }} / {{ server.game?.ramUsage }} Go</span>
+        <span class="value-mini">Stockage: {{ server.currentDiskUsage }} / {{ server.game?.storageUsage }} Go</span>
       </div>
     </div>
-    <div class="card-footer">
-      <button v-if="server.status === 'OFFLINE'" @click="$emit('launch')" class="btn-launch">
-        Démarrer
+
+    <div v-if="expanded" class="expanded-details">
+      <div class="detail">
+        <label>Adresse IP</label>
+        <div class="copyable">
+          <code>{{ server.ipAddress || 'Indisponible' }}</code>
+          <button @click="copy(server.ipAddress)">Copier</button>
+        </div>
+      </div>
+      <div class="detail" v-if="server.password">
+        <label>Mot de passe</label>
+        <div class="password-field">
+          <code>{{ showPass ? server.password : '••••••••' }}</code>
+          <button @click="showPass = !showPass">{{ showPass ? 'Masquer' : 'Voir' }}</button>
+        </div>
+      </div>
+      <div class="admin-actions" v-if="server.status === 'OFFLINE'">
+        <button class="btn-outline" @click="$emit('edit', server)">Paramètres du serveur</button>
+        <button class="btn-danger" @click="confirmDelete">Détruire l'instance</button>
+      </div>
+    </div>
+
+    <div class="footer">
+      <button v-if="server.status === 'OFFLINE'" @click="launchServer" class="btn-start" :disabled="isLaunching">
+        {{ isLaunching ? 'Lancement...' : 'Démarrer le serveur' }}
       </button>
-      <button v-else class="btn-stop" disabled>
-        Arrêter (Simulation)
+      <button v-else-if="server.status === 'ONLINE'" class="btn-stop" disabled>
+        En cours d'exécution
       </button>
+      <div v-else class="loading-state">Initialisation...</div>
     </div>
   </div>
 </template>
 
 <script setup>
-defineProps({
-  server: Object
-});
-defineEmits(['launch']);
+import { ref } from 'vue';
+import { serverService } from '../services/server.service';
+
+const props = defineProps({ server: Object });
+const emit = defineEmits(['edit', 'delete']);
+
+const expanded = ref(false);
+const showPass = ref(false);
+const isLaunching = ref(false);
+
+const launchServer = async () => {
+  isLaunching.value = true;
+  try {
+    const updatedServer = await serverService.launchServer(props.server.id);
+    // Met à jour l'objet local pour afficher les nouvelles informations (IP, mdp, statut ONLINE)
+    Object.assign(props.server, updatedServer);
+    // Développer automatiquement pour montrer l'IP
+    expanded.value = true;
+  } catch (error) {
+    console.error("Erreur lors du lancement:", error);
+    alert("Impossible de démarrer le serveur.");
+  } finally {
+    isLaunching.value = false;
+  }
+};
+
+const copy = (text) => {
+  navigator.clipboard.writeText(text);
+};
+
+const confirmDelete = () => {
+  if (confirm(`Êtes-vous sûr de vouloir supprimer définitivement le serveur "${props.server.name}" ?`)) {
+    emit('delete', props.server);
+  }
+};
 </script>
 
 <style scoped>
 .server-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
   padding: 1.5rem;
-  transition: transform 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  transition: var(--transition);
 }
 
 .server-card:hover {
-  transform: translateY(-5px);
+  border-color: rgba(255, 255, 255, 0.1);
+  background: rgba(30, 41, 59, 0.6);
 }
 
-.card-header {
+.header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1rem;
+  align-items: flex-start;
 }
 
-.badge {
+.title-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+h3 { margin: 0; font-size: 1.25rem; font-weight: 700; }
+
+.status-badge {
   font-size: 0.7rem;
+  font-weight: 800;
   padding: 0.2rem 0.6rem;
-  border-radius: 1rem;
-  background: #334155;
+  border-radius: 2rem;
+  text-transform: uppercase;
+  width: fit-content;
 }
 
-.online .badge {
-  background: #059669;
+.status-badge.online { background: rgba(16, 185, 129, 0.1); color: #10b981; }
+.status-badge.offline { background: rgba(148, 163, 184, 0.1); color: #94a3b8; }
+.status-badge.starting { background: rgba(245, 158, 11, 0.1); color: #f59e0b; }
+
+.btn-more {
+  background: transparent;
+  border: 1px solid var(--border-light);
+  color: var(--text-muted);
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
 }
 
-.offline .badge {
-  background: #475569;
+.info-row {
+  display: flex;
+  gap: 2rem;
 }
 
-.ip-address {
-  margin-top: 1rem;
-  padding: 0.5rem;
-  background: rgba(0, 0, 0, 0.2);
-  border-radius: 0.5rem;
+.info-item { display: flex; flex-direction: column; gap: 0.25rem; }
+
+label { font-size: 0.7rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; }
+
+.value { font-size: 0.95rem; font-weight: 600; color: var(--text-primary); }
+.value-mini { font-size: 0.8rem; font-weight: 500; color: var(--text-secondary); }
+
+.expanded-details {
+  padding-top: 1rem;
+  border-top: 1px solid var(--border-light);
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.detail { display: flex; flex-direction: column; gap: 0.4rem; }
+
+.copyable, .password-field {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  background: rgba(0, 0, 0, 0.2);
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--radius-md);
 }
 
-code {
-  color: #4ecca3;
-}
+code { font-family: monospace; font-size: 0.85rem; color: var(--accent-secondary); }
 
-.btn-launch {
-  width: 100%;
-  padding: 0.8rem;
-  background: #4ecca3;
+.copyable button, .password-field button {
+  background: transparent;
   border: none;
-  border-radius: 0.5rem;
-  color: #0f172a;
-  font-weight: 700;
+  color: var(--text-muted);
+  font-size: 0.75rem;
   cursor: pointer;
+  font-weight: 600;
 }
+
+.btn-start {
+  width: 100%;
+  padding: 0.75rem;
+  background: var(--accent-primary);
+  color: #000;
+  border: none;
+  border-radius: var(--radius-md);
+  font-weight: 800;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.admin-actions {
+  display: flex;
+  gap: 1rem;
+  margin-top: 0.5rem;
+  padding-top: 1rem;
+  border-top: 1px dashed var(--border-light);
+}
+
+.btn-outline {
+  flex: 1;
+  padding: 0.5rem;
+  background: transparent;
+  border: 1px solid var(--border-light);
+  color: var(--text-secondary);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.btn-outline:hover { background: rgba(255,255,255,0.05); }
+
+.btn-danger {
+  flex: 1;
+  padding: 0.5rem;
+  background: transparent;
+  border: 1px dashed var(--accent-danger);
+  color: var(--accent-danger);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.btn-danger:hover { background: rgba(239, 68, 68, 0.1); }
+
+.btn-start:hover { filter: brightness(1.1); }
 
 .btn-stop {
   width: 100%;
-  padding: 0.8rem;
-  background: rgba(239, 68, 68, 0.2);
-  border: 1px solid rgba(239, 68, 68, 0.5);
-  border-radius: 0.5rem;
-  color: #ef4444;
+  padding: 0.75rem;
+  background: transparent;
+  border: 1px solid var(--accent-danger);
+  color: var(--accent-danger);
+  border-radius: var(--radius-md);
+  opacity: 0.6;
+}
+
+.loading-state {
+  text-align: center;
+  font-size: 0.85rem;
+  color: var(--text-muted);
 }
 </style>

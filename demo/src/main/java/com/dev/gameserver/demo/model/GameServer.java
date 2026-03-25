@@ -1,11 +1,13 @@
 package com.dev.gameserver.demo.model;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
@@ -21,27 +23,49 @@ public class GameServer {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    
+
+    @Column(name = "game_server_name")
     private String name;
-    
+
     @Enumerated(EnumType.STRING)
+    @Column(name = "game_server_status")
     private ServerStatus status;
-    
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "game_server_privacy")
+    private ServerPrivacy privacy;
+
+    @Column(name = "ip_adress")
     private String ipAddress;
+
+    private int port;
+
+    @Column(name = "game_server_pwd")
+    private String password;
+
+    @Column(name = "saved_world_path")
+    private String savedWorldPath;
+
+    @Column(name = "current_players_nb")
     private int currentPlayers;
+
+    @Column(name = "max_players_slot")
     private int maxPlayers;
-    
-    @ManyToOne
-    private Game game;
+
+    @Column(name = "current_cpu_usage")
+    private Double currentCpuUsage = 0.0;
+
+    @Column(name = "current_ram_usage")
+    private Double currentRamUsage = 0.0;
+
+    @Column(name = "current_disk_usage")
+    private Double currentDiskUsage = 0.0;
 
     @ManyToOne
+    @JoinColumn(name = "game_template_id")
+    private GameTemplate gameTemplate;
+
+    @ManyToOne
+    @JoinColumn(name = "user_id")
     private User user;
-
-    public void startSimulation(Game game, int maxPlayers, String ipAddress) {
-        this.game = game;
-        this.maxPlayers = maxPlayers;
-        this.ipAddress = ipAddress;
-        this.status = ServerStatus.ONLINE;
-        this.currentPlayers = 0;
-    }
 }

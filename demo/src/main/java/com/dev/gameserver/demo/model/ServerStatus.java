@@ -5,5 +5,6 @@ public enum ServerStatus {
     OFFLINE,
     STARTING,
     STOPPING,
+    RESTARTING,
     MAINTENANCE
 }
