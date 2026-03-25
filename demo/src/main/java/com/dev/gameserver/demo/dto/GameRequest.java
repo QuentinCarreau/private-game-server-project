@@ -33,4 +33,9 @@ public class GameRequest {
      * Valeurs acceptées : "PUBLIC", "PRIVATE"
      */
     private String privacy;
+
+    /**
+     * Le mot de passe du serveur (optionnel si PUBLIC, requis si PRIVATE).
+     */
+    private String password;
 }

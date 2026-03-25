@@ -16,13 +16,13 @@ import lombok.RequiredArgsConstructor;
 /**
  * CRUD + actions de cycle de vie pour les game servers.
  *
- * GET    /api/game-server            → lister tous les serveurs
- * GET    /api/game-server/{id}       → obtenir un serveur par ID
- * DELETE /api/game-server/{id}       → supprimer un serveur
+ * GET /api/game-server → lister tous les serveurs
+ * GET /api/game-server/{id} → obtenir un serveur par ID
+ * DELETE /api/game-server/{id} → supprimer un serveur
  *
- * POST   /api/game-server/{id}/launch  → démarrer un serveur
- * POST   /api/game-server/{id}/stop    → arrêter un serveur
- * POST   /api/game-server/{id}/restart → redémarrer un serveur
+ * POST /api/game-server/{id}/launch → démarrer un serveur
+ * POST /api/game-server/{id}/stop → arrêter un serveur
+ * POST /api/game-server/{id}/restart → redémarrer un serveur
  */
 @RestController
 @RequestMapping("/api/game-server")
@@ -50,27 +50,45 @@ public class GameServerController {
         return serverRepository.findByStatus(status);
     }
 
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(@PathVariable Long id) {
-        if (!serverRepository.existsById(id)) {
-            return ResponseEntity.notFound().build();
-        }
-        serverRepository.deleteById(id);
-        return ResponseEntity.noContent().build();
-    }
-
-    /**
-     * Lance un serveur existant (OFFLINE → STARTING → ONLINE).
-     * Body : { "gameId": 1, "maxPlayers": 10, "serverName": "Mon Serveur", "privacy": "PUBLIC" }
-     */
-    @PostMapping("/{id}/launch")
-    public ResponseEntity<GameServer> launch(
+    @PutMapping("/{id}")
+    public ResponseEntity<GameServer> update(
             @PathVariable Long id,
             @RequestBody GameRequest request,
             java.security.Principal principal) {
 
-        GameServer server = serverService.startServer(
-                id, request.getGameId(), request.getMaxPlayers(), principal.getName());
+        GameServer server = serverService.updateServer(
+                id, request.getServerName(), request.getMaxPlayers(), request.getPrivacy(), request.getPassword(), principal.getName());
+        return ResponseEntity.ok(server);
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> delete(@PathVariable Long id, java.security.Principal principal) {
+        serverService.deleteServer(id, principal.getName());
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/create")
+    public ResponseEntity<GameServer> create(
+            @RequestBody GameRequest request,
+            java.security.Principal principal) {
+
+        GameServer server = serverService.createServer(
+                request.getGameId(), request.getMaxPlayers(), principal.getName(),
+                request.getServerName(), request.getPrivacy(), request.getPassword());
+        return ResponseEntity.ok(server);
+    }
+
+    /**
+     * POST /api/game-server/{id}/launch
+     * Lance un serveur existant (OFFLINE → STARTING → ONLINE).
+     * Pas de body : toutes les infos sont déjà enregistrées sur le serveur.
+     */
+    @PostMapping("/{id}/launch")
+    public ResponseEntity<GameServer> launch(
+            @PathVariable Long id,
+            java.security.Principal principal) {
+
+        GameServer server = serverService.startServer(id, principal.getName());
         return ResponseEntity.ok(server);
     }
 

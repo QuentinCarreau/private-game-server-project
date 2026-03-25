@@ -21,6 +21,12 @@
         <label>Joueurs</label>
         <span class="value">{{ server.currentPlayers }} / {{ server.maxPlayers }}</span>
       </div>
+      <div class="info-item" v-if="server.status === 'ONLINE'">
+        <label>Ressources</label>
+        <span class="value-mini">CPU: {{ server.currentCpuUsage }} / {{ server.game?.cpuUsage }}</span>
+        <span class="value-mini">RAM: {{ server.currentRamUsage }} / {{ server.game?.ramUsage }} Go</span>
+        <span class="value-mini">Stockage: {{ server.currentDiskUsage }} / {{ server.game?.storageUsage }} Go</span>
+      </div>
     </div>
 
     <div v-if="expanded" class="expanded-details">
@@ -38,11 +44,15 @@
           <button @click="showPass = !showPass">{{ showPass ? 'Masquer' : 'Voir' }}</button>
         </div>
       </div>
+      <div class="admin-actions" v-if="server.status === 'OFFLINE'">
+        <button class="btn-outline" @click="$emit('edit', server)">Paramètres du serveur</button>
+        <button class="btn-danger" @click="confirmDelete">Détruire l'instance</button>
+      </div>
     </div>
 
     <div class="footer">
-      <button v-if="server.status === 'OFFLINE'" @click="$emit('launch')" class="btn-start">
-        Démarrer le serveur
+      <button v-if="server.status === 'OFFLINE'" @click="launchServer" class="btn-start" :disabled="isLaunching">
+        {{ isLaunching ? 'Lancement...' : 'Démarrer le serveur' }}
       </button>
       <button v-else-if="server.status === 'ONLINE'" class="btn-stop" disabled>
         En cours d'exécution
@@ -54,15 +64,39 @@
 
 <script setup>
 import { ref } from 'vue';
+import { serverService } from '../services/server.service';
 
 const props = defineProps({ server: Object });
-defineEmits(['launch']);
+const emit = defineEmits(['edit', 'delete']);
 
 const expanded = ref(false);
 const showPass = ref(false);
+const isLaunching = ref(false);
+
+const launchServer = async () => {
+  isLaunching.value = true;
+  try {
+    const updatedServer = await serverService.launchServer(props.server.id);
+    // Met à jour l'objet local pour afficher les nouvelles informations (IP, mdp, statut ONLINE)
+    Object.assign(props.server, updatedServer);
+    // Développer automatiquement pour montrer l'IP
+    expanded.value = true;
+  } catch (error) {
+    console.error("Erreur lors du lancement:", error);
+    alert("Impossible de démarrer le serveur.");
+  } finally {
+    isLaunching.value = false;
+  }
+};
 
 const copy = (text) => {
   navigator.clipboard.writeText(text);
+};
+
+const confirmDelete = () => {
+  if (confirm(`Êtes-vous sûr de vouloir supprimer définitivement le serveur "${props.server.name}" ?`)) {
+    emit('delete', props.server);
+  }
 };
 </script>
 
@@ -134,6 +168,7 @@ h3 { margin: 0; font-size: 1.25rem; font-weight: 700; }
 label { font-size: 0.7rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; }
 
 .value { font-size: 0.95rem; font-weight: 600; color: var(--text-primary); }
+.value-mini { font-size: 0.8rem; font-weight: 500; color: var(--text-secondary); }
 
 .expanded-details {
   padding-top: 1rem;
@@ -176,6 +211,40 @@ code { font-family: monospace; font-size: 0.85rem; color: var(--accent-secondary
   cursor: pointer;
   transition: var(--transition);
 }
+
+.admin-actions {
+  display: flex;
+  gap: 1rem;
+  margin-top: 0.5rem;
+  padding-top: 1rem;
+  border-top: 1px dashed var(--border-light);
+}
+
+.btn-outline {
+  flex: 1;
+  padding: 0.5rem;
+  background: transparent;
+  border: 1px solid var(--border-light);
+  color: var(--text-secondary);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.btn-outline:hover { background: rgba(255,255,255,0.05); }
+
+.btn-danger {
+  flex: 1;
+  padding: 0.5rem;
+  background: transparent;
+  border: 1px dashed var(--accent-danger);
+  color: var(--accent-danger);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.btn-danger:hover { background: rgba(239, 68, 68, 0.1); }
 
 .btn-start:hover { filter: brightness(1.1); }
 

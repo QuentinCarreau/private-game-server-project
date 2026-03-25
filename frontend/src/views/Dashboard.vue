@@ -28,7 +28,8 @@
             v-for="server in servers" 
             :key="server.id" 
             :server="server" 
-            @launch="openLaunchModal(server)"
+            @edit="openEditModal"
+            @delete="deleteServer"
           />
           
           <div v-if="servers.length === 0" class="empty-state" @click="showModal = true">
@@ -47,11 +48,19 @@
       @close="closeModal"
       @launch="confirmLaunch"
     />
+
+    <EditServerModal
+      v-if="showEditModal"
+      :server="selectedServerToEdit"
+      :loading="isSaving"
+      @close="closeEditModal"
+      @save="confirmEdit"
+    />
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { authService } from '../services/auth.service';
 import { serverService } from '../services/server.service';
@@ -62,13 +71,17 @@ import AppSidebar from '../components/AppSidebar.vue';
 import DashboardHeader from '../components/DashboardHeader.vue';
 import ServerCard from '../components/ServerCard.vue';
 import CreateServerModal from '../components/CreateServerModal.vue';
+import EditServerModal from '../components/EditServerModal.vue';
 
 const servers = ref([]);
 const games = ref([]);
 const showModal = ref(false);
+const showEditModal = ref(false);
 const selectedServer = ref(null);
+const selectedServerToEdit = ref(null);
 const loading = ref(false);
 const loadingData = ref(false);
+const isSaving = ref(false);
 const fetchError = ref(null);
 const router = useRouter();
 
@@ -77,8 +90,6 @@ const loadData = async () => {
   fetchError.value = null;
   try {
     servers.value = await serverService.getAllServers();
-    const response = await api.get('/games');
-    games.value = response.data;
   } catch (error) {
     console.error("Erreur de chargement des données:", error);
     if (error.response?.status === 401 || error.response?.status === 403) {
@@ -93,16 +104,40 @@ const loadData = async () => {
   }
 };
 
-onMounted(loadData);
+let pollInterval = null;
 
-const openLaunchModal = (server) => {
-  selectedServer.value = server;
-  showModal.value = true;
+const pollData = async () => {
+  if (document.hidden) return; // Pause polling when tab is inactive
+  try {
+    // Silent update to not trigger the loading spinner and preserve UI state
+    servers.value = await serverService.getAllServers();
+  } catch (error) {
+    console.error("Erreur discrète lors du polling:", error);
+  }
 };
+
+onMounted(() => {
+  loadData();
+  pollInterval = setInterval(pollData, 5000);
+});
+
+onUnmounted(() => {
+  if (pollInterval) clearInterval(pollInterval);
+});
 
 const closeModal = () => {
   showModal.value = false;
   selectedServer.value = null;
+};
+
+const openEditModal = (server) => {
+  selectedServerToEdit.value = server;
+  showEditModal.value = true;
+};
+
+const closeEditModal = () => {
+  showEditModal.value = false;
+  selectedServerToEdit.value = null;
 };
 
 const confirmLaunch = async (formData) => {
@@ -116,6 +151,28 @@ const confirmLaunch = async (formData) => {
     alert("Erreur lors du lancement");
   } finally {
     loading.value = false;
+  }
+};
+
+const confirmEdit = async (formData) => {
+  isSaving.value = true;
+  try {
+    await serverService.updateGameServer(selectedServerToEdit.value.id, formData);
+    closeEditModal();
+    pollData(); // Rafraîchir sans loader
+  } catch (err) {
+    alert("Erreur lors de la modification");
+  } finally {
+    isSaving.value = false;
+  }
+};
+
+const deleteServer = async (server) => {
+  try {
+    await serverService.deleteGameServer(server.id);
+    servers.value = servers.value.filter(s => s.id !== server.id);
+  } catch (err) {
+    alert("Erreur lors de la suppression");
   }
 };
 

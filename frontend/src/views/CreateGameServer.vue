@@ -200,18 +200,17 @@ const selectGame = (game) => {
 const handleSubmit = async () => {
   loading.value = true;
   try {
-    // On prend le premier serveur disponible (OFFLINE) pour le lancer
-    const servers = await serverService.getAllServers();
-    const freeServer = servers.find(s => s.status === 'OFFLINE');
-    if (!freeServer) {
-      alert("Aucun slot de serveur disponible.");
-      return;
-    }
-    await serverService.launchServer(freeServer.id, selectedGame.value.id, formData.value.maxPlayers);
+    await serverService.createGameServer({
+      gameId: selectedGame.value.id,
+      maxPlayers: formData.value.maxPlayers,
+      serverName: formData.value.serverName,
+      privacy: formData.value.privacy,
+      password: formData.value.password || null,
+    });
     router.push('/Dashboard');
   } catch (err) {
-    console.error("Erreur lors du déploiement", err);
-    alert("Erreur lors du déploiement.");
+    console.error("Erreur lors de la création", err);
+    alert("Erreur lors de la création du serveur. Vérifiez votre connexion.");
   } finally {
     loading.value = false;
   }

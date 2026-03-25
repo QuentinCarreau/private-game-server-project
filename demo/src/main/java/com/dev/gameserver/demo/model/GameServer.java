@@ -52,6 +52,15 @@ public class GameServer {
     @Column(name = "max_players_slot")
     private int maxPlayers;
 
+    @Column(name = "current_cpu_usage")
+    private Double currentCpuUsage = 0.0;
+
+    @Column(name = "current_ram_usage")
+    private Double currentRamUsage = 0.0;
+
+    @Column(name = "current_disk_usage")
+    private Double currentDiskUsage = 0.0;
+
     @ManyToOne
     @JoinColumn(name = "game_template_id")
     private GameTemplate gameTemplate;
