@@ -1,48 +1,52 @@
 <template>
-  <div class="dashboard-container">
-    <header class="glass">
-      <div class="logo">GameLauncher</div>
-      <button @click="handleLogout" class="btn-secondary">Déconnexion</button>
-    </header>
+  <div class="dashboard-root">
+    <AppSidebar @logout="handleLogout" />
 
-    <main>
-      <section class="server-grid">
-        <ServerCard 
-          v-for="server in servers" 
-          :key="server.id" 
-          :server="server" 
-          @launch="openLaunchModal(server)"
-        />
+    <main class="content-area">
+      <DashboardHeader @deploy="showModal = true" />
+
+      <section class="servers-section">
+        <div class="section-header">
+          <h2>Vos instances actives ({{ servers.length }})</h2>
+        </div>
+
+        <!-- État de chargement -->
+        <div v-if="loadingData" class="loading-state">
+          <div class="spinner"></div>
+          <p>Chargement des serveurs...</p>
+        </div>
+
+        <!-- Erreur -->
+        <div v-else-if="fetchError" class="error-state">
+          <p>⚠️ {{ fetchError }}</p>
+          <button @click="loadData" class="btn-retry">Réessayer</button>
+        </div>
+
+        <!-- Grille de serveurs -->
+        <div v-else class="cards-grid">
+          <ServerCard 
+            v-for="server in servers" 
+            :key="server.id" 
+            :server="server" 
+            @launch="openLaunchModal(server)"
+          />
+          
+          <div v-if="servers.length === 0" class="empty-state" @click="showModal = true">
+            <div class="empty-icon">🖥️</div>
+            <p>Aucun serveur actif.</p>
+            <span>Cliquez pour en déployer un.</span>
+          </div>
+        </div>
       </section>
     </main>
 
-    <div v-if="showModal" class="modal-overlay">
-      <div class="modal glass">
-        <h2>Lancer un serveur</h2>
-        <p>Simulation pour : {{ selectedServer.name }}</p>
-        
-        <div class="input-group">
-          <label>Choisir le jeu</label>
-          <select v-model="launchData.gameId">
-            <option v-for="game in games" :key="game.id" :value="game.id">
-              {{ game.name }}
-            </option>
-          </select>
-        </div>
-
-        <div class="input-group">
-          <label>Nombre de joueurs max</label>
-          <input type="number" v-model="launchData.maxPlayers" min="1" max="100" />
-        </div>
-
-        <div class="modal-actions">
-          <button @click="showModal = false" class="btn-outline">Annuler</button>
-          <button @click="confirmLaunch" class="btn-primary" :disabled="loading">
-            Lancer la simulation
-          </button>
-        </div>
-      </div>
-    </div>
+    <CreateServerModal 
+      v-if="showModal" 
+      :games="games"
+      :loading="loading"
+      @close="closeModal"
+      @launch="confirmLaunch"
+    />
   </div>
 </template>
 
@@ -51,28 +55,41 @@ import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { authService } from '../services/auth.service';
 import { serverService } from '../services/server.service';
+import api from '../services/api';
+
+// Components
+import AppSidebar from '../components/AppSidebar.vue';
+import DashboardHeader from '../components/DashboardHeader.vue';
 import ServerCard from '../components/ServerCard.vue';
-import axios from 'axios';
+import CreateServerModal from '../components/CreateServerModal.vue';
 
 const servers = ref([]);
 const games = ref([]);
 const showModal = ref(false);
 const selectedServer = ref(null);
 const loading = ref(false);
+const loadingData = ref(false);
+const fetchError = ref(null);
 const router = useRouter();
 
-const launchData = ref({
-  gameId: null,
-  maxPlayers: 10
-});
-
 const loadData = async () => {
+  loadingData.value = true;
+  fetchError.value = null;
   try {
     servers.value = await serverService.getAllServers();
-    const response = await axios.get('/api/games'); // Assuming I'll add this endpoint
+    const response = await api.get('/games');
     games.value = response.data;
   } catch (error) {
-    console.error('Erreur de chargement', error);
+    console.error("Erreur de chargement des données:", error);
+    if (error.response?.status === 401 || error.response?.status === 403) {
+      // Session expirée, rediriger vers le login
+      authService.logout();
+      router.push('/login');
+    } else {
+      fetchError.value = "Impossible de contacter le serveur. Vérifiez que le backend est démarré.";
+    }
+  } finally {
+    loadingData.value = false;
   }
 };
 
@@ -83,16 +100,18 @@ const openLaunchModal = (server) => {
   showModal.value = true;
 };
 
-const confirmLaunch = async () => {
+const closeModal = () => {
+  showModal.value = false;
+  selectedServer.value = null;
+};
+
+const confirmLaunch = async (formData) => {
   loading.value = true;
   try {
-    await serverService.launchServer(
-      selectedServer.value.id, 
-      launchData.value.gameId, 
-      launchData.value.maxPlayers
-    );
-    showModal.value = false;
-    await loadData();
+    const id = selectedServer.value?.id || (servers.value[0]?.id);
+    await serverService.launchServer(id, formData.gameId, formData.maxPlayers);
+    closeModal();
+    loadData();
   } catch (err) {
     alert("Erreur lors du lancement");
   } finally {
@@ -107,99 +126,101 @@ const handleLogout = () => {
 </script>
 
 <style scoped>
-.dashboard-container {
+.dashboard-root {
+  display: flex;
   min-height: 100vh;
-  background: #0f172a;
-  color: #fff;
-  padding: 2rem;
 }
 
-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 1rem 2rem;
-  margin-bottom: 2rem;
+.content-area {
+  flex-grow: 1;
+  padding: 3rem 4rem;
+  background: var(--bg-main);
 }
 
-.logo {
-  font-size: 1.5rem;
-  font-weight: 800;
-  color: #4ecca3;
-}
+.servers-section { display: flex; flex-direction: column; gap: 2rem; }
 
-.server-grid {
+h2 { margin: 0; font-size: 1.25rem; color: var(--text-secondary); }
+
+.cards-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 1.5rem;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 2rem;
 }
 
-.glass {
-  background: rgba(255, 255, 255, 0.03);
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 1rem;
-}
-
-.modal-overlay {
-  position: fixed;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background: rgba(0, 0, 0, 0.8);
+/* Loading */
+.loading-state {
   display: flex;
-  justify-content: center;
+  flex-direction: column;
   align-items: center;
+  justify-content: center;
+  height: 250px;
+  gap: 1.5rem;
+  color: var(--text-muted);
 }
 
-.modal {
-  padding: 2rem;
-  width: 100%;
-  max-width: 500px;
+.loading-state .spinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid rgba(255, 255, 255, 0.05);
+  border-top-color: var(--accent-primary);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
 }
 
-.input-group {
-  margin-bottom: 1.5rem;
-}
+@keyframes spin { to { transform: rotate(360deg); } }
 
-select, input {
-  width: 100%;
-  padding: 0.8rem;
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 0.5rem;
-  color: #fff;
-}
-
-.modal-actions {
+/* Error */
+.error-state {
   display: flex;
-  justify-content: flex-end;
-  gap: 1rem;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+  height: 250px;
+  justify-content: center;
+  color: var(--accent-danger);
+  font-weight: 600;
 }
 
-.btn-primary {
-  padding: 0.8rem 1.5rem;
-  background: #4ecca3;
-  border: none;
-  border-radius: 0.5rem;
-  color: #0f172a;
-  font-weight: 700;
-  cursor: pointer;
-}
-
-.btn-secondary {
-  padding: 0.5rem 1rem;
-  background: rgba(255, 255, 255, 0.1);
-  border: none;
-  border-radius: 0.5rem;
-  color: #fff;
-  cursor: pointer;
-}
-
-.btn-outline {
-  padding: 0.8rem 1.5rem;
+.btn-retry {
   background: transparent;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  color: #fff;
-  border-radius: 0.5rem;
+  border: 1px solid var(--accent-danger);
+  color: var(--accent-danger);
+  padding: 0.5rem 1.5rem;
+  border-radius: var(--radius-md);
   cursor: pointer;
+  transition: var(--transition);
+}
+
+.btn-retry:hover { background: rgba(239, 68, 68, 0.1); }
+
+/* Empty state */
+.empty-state {
+  grid-column: 1 / -1;
+  border: 2px dashed rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-lg);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 250px;
+  gap: 0.75rem;
+  color: var(--text-secondary);
+  background: rgba(255, 255, 255, 0.02);
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.empty-state:hover {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: var(--accent-primary);
+}
+
+.empty-icon { font-size: 2.5rem; }
+.empty-state p { font-size: 1rem; font-weight: 600; margin: 0; }
+.empty-state span { font-size: 0.85rem; color: var(--text-muted); }
+
+@media (max-width: 1100px) {
+  .dashboard-root { flex-direction: column; }
+  .content-area { padding: 2rem 1.5rem; }
 }
 </style>

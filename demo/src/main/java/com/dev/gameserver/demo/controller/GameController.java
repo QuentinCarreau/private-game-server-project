@@ -7,8 +7,8 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.dev.gameserver.demo.model.Game;
-import com.dev.gameserver.demo.repository.GameRepository;
+import com.dev.gameserver.demo.model.GameTemplate;
+import com.dev.gameserver.demo.repository.GameTemplateRepository;
 
 import lombok.RequiredArgsConstructor;
 
@@ -18,10 +18,10 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class GameController {
 
-    private final GameRepository gameRepository;
+    private final GameTemplateRepository gameTemplateRepository;
 
     @GetMapping
-    public List<Game> getAllGames() {
-        return gameRepository.findAll();
+    public List<GameTemplate> getAllGames() {
+        return gameTemplateRepository.findAll();
     }
 }

@@ -12,12 +12,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.dev.gameserver.demo.dto.LaunchRequest;
-import com.dev.gameserver.demo.model.Game;
 import com.dev.gameserver.demo.model.GameServer;
-import com.dev.gameserver.demo.model.User;
-import com.dev.gameserver.demo.repository.GameRepository;
-import com.dev.gameserver.demo.repository.GameServerRepository;
-import com.dev.gameserver.demo.repository.UserRepository;
+import com.dev.gameserver.demo.service.GameServerService;
 
 import lombok.RequiredArgsConstructor;
 
@@ -27,13 +23,11 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class ServerController {
 
-    private final GameServerRepository serverRepository;
-    private final GameRepository gameRepository;
-    private final UserRepository userRepository;
+    private final GameServerService serverService;
 
     @GetMapping
     public List<GameServer> getAllServers() {
-        return serverRepository.findAll();
+        return serverService.getAllServers();
     }
 
     @PostMapping("/{id}/launch")
@@ -41,17 +35,26 @@ public class ServerController {
             @PathVariable Long id,
             @RequestBody LaunchRequest request,
             java.security.Principal principal) {
+        
+        GameServer server = serverService.startServer(id, request.getGameId(), request.getMaxPlayers(), principal.getName());
+        return ResponseEntity.ok(server);
+    }
 
-        return serverRepository.findById(id).map(server -> {
-            Game game = gameRepository.findById(request.getGameId())
-                    .orElseThrow(() -> new RuntimeException("Jeu introuvable"));
+    @PostMapping("/{id}/stop")
+    public ResponseEntity<GameServer> stopServer(
+            @PathVariable Long id,
+            java.security.Principal principal) {
+        
+        GameServer server = serverService.stopServer(id, principal.getName());
+        return ResponseEntity.ok(server);
+    }
 
-            User user = userRepository.findByUsername(principal.getName())
-                    .orElseThrow(() -> new RuntimeException("Utilisateur introuvable"));
-
-            server.setUser(user);
-            server.startSimulation(game, request.getMaxPlayers(), "152.160.42." + id);
-            return ResponseEntity.ok(serverRepository.save(server));
-        }).orElse(ResponseEntity.notFound().build());
+    @PostMapping("/{id}/restart")
+    public ResponseEntity<GameServer> restartServer(
+            @PathVariable Long id,
+            java.security.Principal principal) {
+        
+        GameServer server = serverService.restartServer(id, principal.getName());
+        return ResponseEntity.ok(server);
     }
 }

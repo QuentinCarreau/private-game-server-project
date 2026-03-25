@@ -5,8 +5,10 @@ import { authService } from '../services/auth.service';
 
 const routes = [
   { path: '/login', component: Login },
-  { 
-    path: '/', 
+  // redirect the root path to /Dashboard
+  { path: '/', redirect: '/Dashboard' },
+  {
+    path: '/Dashboard',
     component: Dashboard,
     beforeEnter: (to, from, next) => {
       if (!authService.isAuthenticated()) {

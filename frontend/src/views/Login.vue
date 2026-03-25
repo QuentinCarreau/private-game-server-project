@@ -1,22 +1,25 @@
 <template>
-  <div class="login-container">
+  <div class="login-viewport">
     <div class="login-card glass">
-      <h1>Connexion</h1>
-      <p>Accédez à votre console de gestion de serveurs.</p>
+      <div class="logo">GamePulse</div>
+      <h1>Bon retour</h1>
+      <p>Connectez-vous pour piloter vos serveurs.</p>
+      
       <form @submit.prevent="handleLogin">
-        <div class="input-group">
+        <div class="form-group">
           <label for="username">Utilisateur</label>
-          <input id="username" v-model="username" type="text" required placeholder="quentin" />
+          <input id="username" v-model="username" type="text" required placeholder="Votre pseudo" />
         </div>
-        <div class="input-group">
+        <div class="form-group">
           <label for="password">Mot de passe</label>
           <input id="password" v-model="password" type="password" required placeholder="••••••••" />
         </div>
-        <button type="submit" :disabled="loading" class="btn-primary">
-          <span v-if="loading">Connexion...</span>
-          <span v-else>Se connecter</span>
+        
+        <button type="submit" :disabled="loading" class="btn-login">
+          {{ loading ? 'Authentification...' : 'Se Connecter' }}
         </button>
-        <p v-if="error" class="error">{{ error }}</p>
+        
+        <p v-if="error" class="error-msg">{{ error }}</p>
       </form>
     </div>
   </div>
@@ -34,13 +37,13 @@ const loading = ref(false);
 const router = useRouter();
 
 const handleLogin = async () => {
-  loading.ref = true;
+  loading.value = true;
   error.value = '';
   try {
     await authService.login(username.value, password.value);
-    router.push('/');
+    router.push('/Dashboard');
   } catch (err) {
-    error.value = 'Identifiants invalides ou serveur hors ligne.';
+    error.value = 'Identifiants invalides ou serveur indisponible.';
   } finally {
     loading.value = false;
   }
@@ -48,93 +51,76 @@ const handleLogin = async () => {
 </script>
 
 <style scoped>
-.login-container {
+.login-viewport {
+  height: 100vh;
   display: flex;
   justify-content: center;
   align-items: center;
-  height: 100vh;
-  background: radial-gradient(circle at top right, #1a1a2e, #16213e);
+  background: var(--bg-main);
 }
 
 .login-card {
-  padding: 2.5rem;
   width: 100%;
   max-width: 400px;
+  padding: 3rem;
+  border-radius: var(--radius-lg);
   text-align: center;
+  background: var(--bg-sidebar);
+  border: 1px solid var(--border-light);
 }
 
-.glass {
-  background: rgba(255, 255, 255, 0.05);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 1.5rem;
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
-}
-
-h1 {
-  margin-bottom: 0.5rem;
-  font-weight: 700;
-  color: #fff;
-}
-
-p {
-  color: #a0a0a0;
+.logo {
+  font-size: 1.5rem;
+  font-weight: 900;
+  color: var(--accent-primary);
   margin-bottom: 2rem;
 }
 
-.input-group {
-  text-align: left;
-  margin-bottom: 1.5rem;
-}
+h1 { font-size: 1.75rem; font-weight: 800; margin-bottom: 0.5rem; }
+
+p { color: var(--text-secondary); margin-bottom: 2rem; }
+
+.form-group { text-align: left; margin-bottom: 1.5rem; }
 
 label {
   display: block;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--text-muted);
   margin-bottom: 0.5rem;
-  color: #ccc;
-  font-size: 0.9rem;
+  text-transform: uppercase;
 }
 
 input {
   width: 100%;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid var(--border-light);
   padding: 0.8rem 1rem;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 0.8rem;
+  border-radius: var(--radius-md);
   color: #fff;
-  transition: all 0.3s ease;
+  transition: var(--transition);
 }
 
-input:focus {
-  outline: none;
-  border-color: #4ecca3;
-  background: rgba(255, 255, 255, 0.1);
-}
+input:focus { outline: none; border-color: var(--accent-primary); }
 
-.btn-primary {
+.btn-login {
   width: 100%;
   padding: 1rem;
-  background: #4ecca3;
+  background: var(--accent-primary);
   border: none;
-  border-radius: 0.8rem;
-  color: #1a1a2e;
-  font-weight: 700;
+  border-radius: var(--radius-md);
+  color: #000;
+  font-weight: 800;
   cursor: pointer;
-  transition: transform 0.2s ease, background 0.3s ease;
+  transition: var(--transition);
 }
 
-.btn-primary:hover {
-  background: #45b393;
-  transform: translateY(-2px);
-}
+.btn-login:hover { filter: brightness(1.1); }
 
-.btn-primary:disabled {
-  opacity: 0.7;
-  cursor: not-allowed;
-}
-
-.error {
-  color: #ff4d4d;
-  margin-top: 1rem;
-  font-size: 0.9rem;
+.error-msg {
+  color: var(--accent-danger);
+  margin-top: 1.5rem;
+  font-size: 0.85rem;
+  font-weight: 600;
 }
 </style>

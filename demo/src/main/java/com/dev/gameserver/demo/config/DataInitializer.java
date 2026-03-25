@@ -18,7 +18,7 @@ public class DataInitializer {
                 User user = new User();
                 user.setUsername("quentin");
                 user.setPassword(passwordEncoder.encode("password")); // Hash the password
-                user.setEmail("quentin@example.com");
+                user.setRole("ADMIN");
                 userRepository.save(user);
                 System.out.println("Default user 'quentin' created.");
             }
