@@ -35,6 +35,10 @@ public class GameServerService {
         return serverRepository.findAll();
     }
 
+    public List<GameTemplate> getAllGames() {
+        return gameTemplateRepository.findAll();
+    }
+
     @Transactional
     public GameServer startServer(Long serverId, Long gameId, int maxPlayers, String username) {
         GameServer server = getServerAndValidateOwnership(serverId, username);

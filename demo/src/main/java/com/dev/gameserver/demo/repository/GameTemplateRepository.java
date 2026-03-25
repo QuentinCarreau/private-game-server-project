@@ -9,5 +9,7 @@ import com.dev.gameserver.demo.model.GameTemplate;
 
 @Repository
 public interface GameTemplateRepository extends JpaRepository<GameTemplate, Long> {
+
+    // Trouver un template par son nom
     Optional<GameTemplate> findByName(String name);
 }

@@ -7,7 +7,7 @@
     
     <div class="header-actions">
       <ResourceMonitor />
-      <button @click="$emit('deploy')" class="btn-primary">
+      <button @click="router.push('/createGameServer')" class="btn-primary">
         + Déployer un serveur
       </button>
     </div>
@@ -15,8 +15,9 @@
 </template>
 
 <script setup>
+import { useRouter } from 'vue-router';
 import ResourceMonitor from './ResourceMonitor.vue';
-defineEmits(['deploy']);
+const router = useRouter();
 </script>
 
 <style scoped>

@@ -5,7 +5,7 @@ export const authService = {
     // In HTTP Basic, we just try to call an endpoint
     setAuthHeader(username, password);
     try {
-      await api.get('/servers'); // Simple test call
+      await api.get('/users'); // Simple test call
       return true;
     } catch (error) {
       setAuthHeader(null);

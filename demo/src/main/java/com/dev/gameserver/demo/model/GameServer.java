@@ -31,6 +31,10 @@ public class GameServer {
     @Column(name = "game_server_status")
     private ServerStatus status;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "game_server_privacy")
+    private ServerPrivacy privacy;
+
     @Column(name = "ip_adress")
     private String ipAddress;
 

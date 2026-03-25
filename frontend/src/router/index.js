@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import Login from '../views/Login.vue';
 import Dashboard from '../views/Dashboard.vue';
+import CreateGameServer from '../views/CreateGameServer.vue';
 import { authService } from '../services/auth.service';
 
 const routes = [
@@ -10,6 +11,17 @@ const routes = [
   {
     path: '/Dashboard',
     component: Dashboard,
+    beforeEnter: (to, from, next) => {
+      if (!authService.isAuthenticated()) {
+        next('/login');
+      } else {
+        next();
+      }
+    }
+  },
+  {
+    path: '/createGameServer',
+    component: CreateGameServer,
     beforeEnter: (to, from, next) => {
       if (!authService.isAuthenticated()) {
         next('/login');
