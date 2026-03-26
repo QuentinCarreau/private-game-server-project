@@ -32,22 +32,13 @@
             @delete="deleteServer"
           />
           
-          <div v-if="servers.length === 0" class="empty-state" @click="isAdmin ? showModal = true : null" :class="{ 'clickable': isAdmin }">
+          <div v-if="servers.length === 0" class="empty-state">
             <div class="empty-icon">🖥️</div>
             <p>Aucun serveur actif.</p>
-            <span v-if="isAdmin">Cliquez pour en déployer un.</span>
           </div>
         </div>
       </section>
     </main>
-
-    <CreateServerModal 
-      v-if="showModal" 
-      :games="games"
-      :loading="loading"
-      @close="closeModal"
-      @launch="confirmLaunch"
-    />
 
     <EditServerModal
       v-if="showEditModal"
@@ -64,37 +55,25 @@ import { ref, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { authService } from '../services/auth.service';
 import { serverService } from '../services/server.service';
-import api from '../services/api';
 
 // Components
 import AppSidebar from '../components/AppSidebar.vue';
 import DashboardHeader from '../components/DashboardHeader.vue';
 import ServerCard from '../components/ServerCard.vue';
-import CreateServerModal from '../components/CreateServerModal.vue';
 import EditServerModal from '../components/EditServerModal.vue';
 
 const servers = ref([]);
-const games = ref([]);
-const showModal = ref(false);
 const showEditModal = ref(false);
-const selectedServer = ref(null);
 const selectedServerToEdit = ref(null);
-const loading = ref(false);
 const loadingData = ref(false);
 const isSaving = ref(false);
 const fetchError = ref(null);
 const router = useRouter();
-const isAdmin = ref(false);
 
 const loadData = async () => {
   loadingData.value = true;
   fetchError.value = null;
   
-  const userStr = localStorage.getItem('user');
-  if (userStr) {
-    const user = JSON.parse(userStr);
-    isAdmin.value = user.role === 'ADMIN';
-  }
   try {
     servers.value = await serverService.getAllServers();
   } catch (error) {
@@ -132,11 +111,6 @@ onUnmounted(() => {
   if (pollInterval) clearInterval(pollInterval);
 });
 
-const closeModal = () => {
-  showModal.value = false;
-  selectedServer.value = null;
-};
-
 const openEditModal = (server) => {
   selectedServerToEdit.value = server;
   showEditModal.value = true;
@@ -145,20 +119,6 @@ const openEditModal = (server) => {
 const closeEditModal = () => {
   showEditModal.value = false;
   selectedServerToEdit.value = null;
-};
-
-const confirmLaunch = async (formData) => {
-  loading.value = true;
-  try {
-    const id = selectedServer.value?.id || (servers.value[0]?.id);
-    await serverService.launchServer(id, formData.gameId, formData.maxPlayers);
-    closeModal();
-    loadData();
-  } catch (err) {
-    alert("Erreur lors du lancement");
-  } finally {
-    loading.value = false;
-  }
 };
 
 const confirmEdit = async (formData) => {

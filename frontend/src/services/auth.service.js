@@ -15,11 +15,13 @@ export const authService = {
       return user;
     } catch (error) {
       setAuthHeader(null);
+      localStorage.removeItem('user');
       throw error;
     }
   },
   logout() {
     setAuthHeader(null);
+    localStorage.removeItem('user');
   },
   isAuthenticated() {
     return !!localStorage.getItem('user');

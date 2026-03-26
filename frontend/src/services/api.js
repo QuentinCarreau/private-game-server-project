@@ -9,10 +9,8 @@ export const setAuthHeader = (username, password) => {
   if (username && password) {
     const token = btoa(`${username}:${password}`);
     api.defaults.headers.common['Authorization'] = `Basic ${token}`;
-    localStorage.setItem('user', JSON.stringify({ username, token }));
   } else {
     delete api.defaults.headers.common['Authorization'];
-    localStorage.removeItem('user');
   }
 };
 
