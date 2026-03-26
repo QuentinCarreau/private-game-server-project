@@ -19,8 +19,8 @@ const routes = [
     component: Dashboard,
     meta: { requiresAuth: true }
   },
-  {
-    path: '/createGameServer',
+  { 
+    path: '/createGameServer', 
     component: CreateGameServer,
     meta: { requiresAuth: true }
   },

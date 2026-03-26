@@ -54,9 +54,12 @@
       <button v-if="server.status === 'OFFLINE'" @click="launchServer" class="btn-start" :disabled="isLaunching">
         {{ isLaunching ? 'Lancement...' : 'Démarrer le serveur' }}
       </button>
-      <button v-else-if="server.status === 'ONLINE'" class="btn-stop" disabled>
-        En cours d'exécution
-      </button>
+      <div v-else-if="server.status === 'ONLINE'" class="footer-online">
+        <span class="running-label">⚡ En cours d'exécution</span>
+        <button class="btn-stop-action" @click="confirmStop" :disabled="isStopping">
+          {{ isStopping ? 'Arrêt...' : 'Arrêter' }}
+        </button>
+      </div>
       <div v-else class="loading-state">Initialisation...</div>
     </div>
   </div>
@@ -72,6 +75,7 @@ const emit = defineEmits(['edit', 'delete']);
 const expanded = ref(false);
 const showPass = ref(false);
 const isLaunching = ref(false);
+const isStopping = ref(false);
 const isAdmin = ref(false);
 
 onMounted(() => {
@@ -95,6 +99,31 @@ const launchServer = async () => {
     alert("Impossible de démarrer le serveur.");
   } finally {
     isLaunching.value = false;
+  }
+};
+
+const confirmStop = async () => {
+  const confirmed = confirm(
+    `⚠️ Arrêter le serveur "${props.server.name}" ?\n\n` +
+    `Les joueurs encore connectés seront déconnectés de force.\n` +
+    `Des données non sauvegardées pourraient être perdues.\n\n` +
+    `Voulez-vous vraiment continuer ?`
+  );
+  if (!confirmed) return;
+
+  isStopping.value = true;
+  try {
+    const updatedServer = await serverService.stopServer(props.server.id);
+    Object.assign(props.server, updatedServer);
+    expanded.value = false;
+  } catch (error) {
+    console.error('Erreur lors de l\'arrêt:', error);
+    alert(
+      `Impossible d'arrêter le serveur "${props.server.name}" pour le moment.\n\n` +
+      `Si le problème persiste, veuillez contacter le support.`
+    );
+  } finally {
+    isStopping.value = false;
   }
 };
 
@@ -257,15 +286,37 @@ code { font-family: monospace; font-size: 0.85rem; color: var(--accent-secondary
 
 .btn-start:hover { filter: brightness(1.1); }
 
-.btn-stop {
-  width: 100%;
-  padding: 0.75rem;
+.footer-online {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.5rem 0.75rem;
+  background: rgba(16, 185, 129, 0.05);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+  border-radius: var(--radius-md);
+}
+
+.running-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #10b981;
+}
+
+.btn-stop-action {
+  padding: 0.4rem 1rem;
   background: transparent;
   border: 1px solid var(--accent-danger);
   color: var(--accent-danger);
-  border-radius: var(--radius-md);
-  opacity: 0.6;
+  border-radius: var(--radius-sm);
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: var(--transition);
 }
+
+.btn-stop-action:hover:not(:disabled) { background: rgba(239, 68, 68, 0.1); }
+.btn-stop-action:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .loading-state {
   text-align: center;
