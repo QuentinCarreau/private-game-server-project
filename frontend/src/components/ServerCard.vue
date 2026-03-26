@@ -86,6 +86,10 @@ onMounted(() => {
   }
 });
 
+/**
+ * Lance un serveur
+ * @param {number} serverId - ID du serveur
+ */
 const launchServer = async () => {
   isLaunching.value = true;
   try {
@@ -102,6 +106,10 @@ const launchServer = async () => {
   }
 };
 
+/**
+ * Confirme l'arrêt d'un serveur
+ * @param {number} serverId - ID du serveur
+ */
 const confirmStop = async () => {
   const confirmed = confirm(
     `⚠️ Arrêter le serveur "${props.server.name}" ?\n\n` +
@@ -127,10 +135,18 @@ const confirmStop = async () => {
   }
 };
 
+/**
+ * Copie un texte dans le presse-papiers
+ * @param {string} text - Texte à copier
+ */
 const copy = (text) => {
   navigator.clipboard.writeText(text);
 };
 
+/**
+ * Confirme la suppression d'un serveur
+ * @param {number} serverId - ID du serveur
+ */
 const confirmDelete = () => {
   if (confirm(`Êtes-vous sûr de vouloir supprimer définitivement le serveur "${props.server.name}" ?`)) {
     emit('delete', props.server);

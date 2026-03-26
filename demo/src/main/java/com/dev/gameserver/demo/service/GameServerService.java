@@ -31,16 +31,37 @@ public class GameServerService {
     private final UserRepository userRepository;
     private final Random random = new Random();
 
+    /**
+     * Récupère tous les serveurs
+     * 
+     * @return Liste de tous les serveurs
+     */
     public List<GameServer> getAllServers() {
         return serverRepository.findAll();
     }
 
+    /**
+     * Récupère tous les jeux
+     * 
+     * @return Liste de tous les jeux
+     */
     public List<GameTemplate> getAllGames() {
         return gameTemplateRepository.findAll();
     }
 
+    /**
+     * Crée un nouveau serveur
+     * 
+     * @param gameId     ID du jeu
+     * @param maxPlayers Nombre maximum de joueurs
+     * @param username   Nom d'utilisateur
+     * @param serverName Nom du serveur
+     * @param privacy    Confidentialité du serveur
+     * @param password   Mot de passe du serveur
+     * @return Serveur créé
+     */
     public GameServer createServer(Long gameId, int maxPlayers, String username,
-                                   String serverName, String privacy, String password) {
+            String serverName, String privacy, String password) {
         GameTemplate template = gameTemplateRepository.findById(gameId)
                 .orElseThrow(() -> new ResourceNotFoundException("Jeu introuvable"));
         User user = userRepository.findByUsername(username)
@@ -114,6 +135,13 @@ public class GameServerService {
         return saved;
     }
 
+    /**
+     * Arrête un serveur
+     * 
+     * @param serverId ID du serveur
+     * @param username Nom d'utilisateur
+     * @return Serveur arrêté
+     */
     @Transactional
     public GameServer stopServer(Long serverId, String username) {
         GameServer server = getServerAndValidateOwnership(serverId, username);
@@ -137,6 +165,13 @@ public class GameServerService {
         return saved;
     }
 
+    /**
+     * Redémarre un serveur
+     * 
+     * @param serverId ID du serveur
+     * @param username Nom d'utilisateur
+     * @return Serveur redémarré
+     */
     @Transactional
     public GameServer restartServer(Long serverId, String username) {
         GameServer server = getServerAndValidateOwnership(serverId, username);
@@ -157,16 +192,38 @@ public class GameServerService {
         return server;
     }
 
+    /**
+     * Met à jour un serveur
+     * 
+     * @param serverId   ID du serveur
+     * @param serverName Nom du serveur
+     * @param maxPlayers Nombre maximum de joueurs
+     * @param privacy    Confidentialité du serveur
+     * @param password   Mot de passe du serveur
+     * @param username   Nom d'utilisateur
+     * @return Serveur mis à jour
+     */
     @Transactional
-    public GameServer updateServer(Long serverId, String serverName, int maxPlayers, String privacy, String password, String username) {
+    public GameServer updateServer(Long serverId, String serverName, int maxPlayers, String privacy, String password,
+            String username) {
         GameServer server = getServerAndValidateOwnership(serverId, username);
-        if (serverName != null) server.setName(serverName);
-        if (maxPlayers > 0) server.setMaxPlayers(maxPlayers);
-        if (privacy != null) server.setPrivacy(ServerPrivacy.valueOf(privacy));
-        if (password != null) server.setPassword(password.isEmpty() ? null : password);
+        if (serverName != null)
+            server.setName(serverName);
+        if (maxPlayers > 0)
+            server.setMaxPlayers(maxPlayers);
+        if (privacy != null)
+            server.setPrivacy(ServerPrivacy.valueOf(privacy));
+        if (password != null)
+            server.setPassword(password.isEmpty() ? null : password);
         return serverRepository.save(server);
     }
 
+    /**
+     * Supprime un serveur
+     * 
+     * @param serverId ID du serveur
+     * @param username Nom d'utilisateur
+     */
     @Transactional
     public void deleteServer(Long serverId, String username) {
         GameServer server = getServerAndValidateOwnership(serverId, username);
@@ -203,6 +260,13 @@ public class GameServerService {
         }
     }
 
+    /**
+     * Récupère un serveur et valide la propriété
+     * 
+     * @param serverId ID du serveur
+     * @param username Nom d'utilisateur
+     * @return Serveur validé
+     */
     private GameServer getServerAndValidateOwnership(Long serverId, String username) {
         GameServer server = serverRepository.findById(serverId)
                 .orElseThrow(() -> new ResourceNotFoundException("Serveur introuvable"));
