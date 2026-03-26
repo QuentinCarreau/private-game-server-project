@@ -32,10 +32,10 @@
             @delete="deleteServer"
           />
           
-          <div v-if="servers.length === 0" class="empty-state" @click="showModal = true">
+          <div v-if="servers.length === 0" class="empty-state" @click="isAdmin ? showModal = true : null" :class="{ 'clickable': isAdmin }">
             <div class="empty-icon">🖥️</div>
             <p>Aucun serveur actif.</p>
-            <span>Cliquez pour en déployer un.</span>
+            <span v-if="isAdmin">Cliquez pour en déployer un.</span>
           </div>
         </div>
       </section>
@@ -84,10 +84,17 @@ const loadingData = ref(false);
 const isSaving = ref(false);
 const fetchError = ref(null);
 const router = useRouter();
+const isAdmin = ref(false);
 
 const loadData = async () => {
   loadingData.value = true;
   fetchError.value = null;
+  
+  const userStr = localStorage.getItem('user');
+  if (userStr) {
+    const user = JSON.parse(userStr);
+    isAdmin.value = user.role === 'ADMIN';
+  }
   try {
     servers.value = await serverService.getAllServers();
   } catch (error) {
@@ -267,7 +274,7 @@ h2 { margin: 0; font-size: 1.25rem; color: var(--text-secondary); }
   transition: var(--transition);
 }
 
-.empty-state:hover {
+.empty-state.clickable:hover {
   background: rgba(255, 255, 255, 0.04);
   border-color: var(--accent-primary);
 }

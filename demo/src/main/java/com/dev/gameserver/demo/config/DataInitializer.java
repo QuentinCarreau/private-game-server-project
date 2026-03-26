@@ -22,6 +22,14 @@ public class DataInitializer {
                 userRepository.save(user);
                 System.out.println("Default user 'quentin' created.");
             }
+            if (userRepository.findByUsername("thomas").isEmpty()) {
+                User user2 = new User();
+                user2.setUsername("thomas");
+                user2.setPassword(passwordEncoder.encode("password")); // Hash the password
+                user2.setRole("USER");
+                userRepository.save(user2);
+                System.out.println("Default user 'thomas' created.");
+            }
         };
     }
 }

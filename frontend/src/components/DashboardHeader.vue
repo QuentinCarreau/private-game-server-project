@@ -7,7 +7,7 @@
     
     <div class="header-actions">
       <ResourceMonitor />
-      <button @click="router.push('/createGameServer')" class="btn-primary">
+      <button v-if="isAdmin" @click="router.push('/createGameServer')" class="btn-primary">
         + Déployer un serveur
       </button>
     </div>
@@ -15,9 +15,20 @@
 </template>
 
 <script setup>
+import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import ResourceMonitor from './ResourceMonitor.vue';
+
 const router = useRouter();
+const isAdmin = ref(false);
+
+onMounted(() => {
+  const userStr = localStorage.getItem('user');
+  if (userStr) {
+    const user = JSON.parse(userStr);
+    isAdmin.value = user.role === 'ADMIN';
+  }
+});
 </script>
 
 <style scoped>
